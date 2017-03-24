@@ -1,0 +1,22 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <com.androidcycle.demo.ScrollTextView
+        android:layout_width="300dp"
+        android:layout_height="100dp"
+        android:background="#ccc"
+        android:layout_gravity="center"
+        android:paddingBottom="10dp"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:paddingTop="10dp"
+        app:bottomString="Hello, ScrollTextView ScrollTextView ScrollTextView ScrollTextView"
+        app:bottomTextColor="@android:color/holo_green_light"
+        app:bottomTextSize="20sp"
+        app:topTextColor="#33b5e5"
+        app:topTextSize="20sp"
+        app:topString="Hello, ScrollTextView ScrollTextView ScrollTextView ScrollTextView" />
+
+</FrameLayout>

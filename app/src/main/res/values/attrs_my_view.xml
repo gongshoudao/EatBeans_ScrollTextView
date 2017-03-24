@@ -1,0 +1,10 @@
+<resources>
+    <declare-styleable name="ScrollTextView">
+        <attr name="topString" format="string" />
+        <attr name="bottomString" format="string" />
+        <attr name="topTextSize" format="dimension" />
+        <attr name="bottomTextSize" format="dimension" />
+        <attr name="topTextColor" format="color" />
+        <attr name="bottomTextColor" format="color" />
+    </declare-styleable>
+</resources>
