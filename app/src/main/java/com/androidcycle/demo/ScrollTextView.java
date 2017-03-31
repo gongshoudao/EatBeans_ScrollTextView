@@ -5,8 +5,6 @@ import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
-import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -18,26 +16,34 @@ import android.view.animation.Transformation;
 import java.util.ArrayList;
 
 public class ScrollTextView extends View {
-    private String topStr;
-    private int topTvColor = Color.RED;
+    private int topTvColor = Color.BLACK;
+    private int bottomTvColor = Color.LTGRAY;
     private float topTvSize = 0;
-    private Drawable mExampleDrawable;
 
     private TextPaint topTextPaint;
     private float topTextHeight;
+    private String topStr;
     private String bottomStr;
-    private int bottomTvColor;
+    private String nextTopStr;
+    private String nextBottomStr;
     private float bottomTvSize;
     private TextPaint bottomTextPaint;
     private boolean hasEllipsizeTopStr;
-    private boolean hasEllipsizeBottomStr;
     private AlphaAnimation alphaAnimation;
     private Transformation transformation;
-    private float bottomTextHeight;
     private final ArrayList<String[]> scrollTexts = new ArrayList<>();
     private boolean animStarted;
     private float descentTop;
     private float descentBottom;
+    private int index = 0;
+    private int size;
+    private boolean autoPlay;
+    private int paddingLeft = -1;
+    private int paddingTop = -1;
+    private int paddingRight = -1;
+    private int paddingBottom = -1;
+    private int contentWidth = -1;
+    private int contentHeight = -1;
 
     public ScrollTextView(Context context) {
         super(context);
@@ -61,6 +67,9 @@ public class ScrollTextView extends View {
 
         topStr = a.getString(
                 R.styleable.ScrollTextView_topString);
+        if (topStr == null) {
+            topStr = "";
+        }
         topTvColor = a.getColor(
                 R.styleable.ScrollTextView_topTextColor,
                 topTvColor);
@@ -70,13 +79,16 @@ public class ScrollTextView extends View {
 
         bottomStr = a.getString(
                 R.styleable.ScrollTextView_bottomString);
+        if (bottomStr == null) {
+            bottomStr = "";
+        }
         bottomTvColor = a.getColor(
                 R.styleable.ScrollTextView_bottomTextColor,
-                topTvColor);
+                bottomTvColor);
         bottomTvSize = a.getDimension(
                 R.styleable.ScrollTextView_bottomTextSize,
-                topTvSize);
-
+                bottomTvSize);
+        autoPlay = a.getBoolean(R.styleable.ScrollTextView_autoPlay, false);
         a.recycle();
 
         // Set up a default TextPaint object
@@ -87,16 +99,6 @@ public class ScrollTextView extends View {
         bottomTextPaint = new TextPaint();
         bottomTextPaint.setFlags(Paint.ANTI_ALIAS_FLAG);
         bottomTextPaint.setTextAlign(Paint.Align.LEFT);
-
-        final ArrayList<String[]> strs = new ArrayList<>();
-        final String[] strings = new String[2];
-        for (int i = 0; i < 6; i++) {
-            strings[0] = i + "-巴拉巴拉巴拉";
-            strings[1] = i + "-哈哈哈哈";
-            strs.add(strings);
-        }
-        setScrollText(strs);
-
         invalidateTextPaintAndMeasurements();
     }
 
@@ -112,15 +114,35 @@ public class ScrollTextView extends View {
         bottomTextPaint.setColor(bottomTvColor);
         final Paint.FontMetrics bottomFontMetrics = bottomTextPaint.getFontMetrics();
         descentBottom = bottomFontMetrics.descent;
-        System.out.println("fontMetrics.descent descentBottom = " + descentBottom);
-        bottomTextHeight = bottomFontMetrics.bottom + bottomTextPaint.getFontSpacing() / 2;
     }
 
     public void setScrollText(ArrayList<String[]> strs) {
         scrollTexts.addAll(strs);
+        size = scrollTexts.size();
+        index = 0;
+        final String[] first = scrollTexts.get(index);
+        nextTopStr = first[0];
+        nextBottomStr = first[1];
+        topStr = first[0];
+        bottomStr = first[1];
+        invalidateTextPaintAndMeasurements();
     }
 
-    public void startAnim() {
+    private void getNextString() {
+        if (size == 0) {
+            return;
+        }
+        if (size > index + 1) {
+            index++;
+        } else {
+            index = 0;
+        }
+        final String[] second = scrollTexts.get(index);
+        topStr = second[0];
+        bottomStr = second[1];
+    }
+
+    private void startAnimInternal() {
         animStarted = true;
         if (alphaAnimation == null) {
             alphaAnimation = new AlphaAnimation(1.0f, 0f);
@@ -137,39 +159,36 @@ public class ScrollTextView extends View {
         postInvalidate();
     }
 
-    public void stopAnim() {
+    private void stopAnimInternal() {
         animStarted = false;
     }
 
     @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-    }
-
-    final Rect bounds = new Rect();
-
-    @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
-        // TODO: consider storing these as member variables to reduce
-        // allocations per draw cycle.
-        int paddingLeft = getPaddingLeft();
-        int paddingTop = getPaddingTop();
-        int paddingRight = getPaddingRight();
-        int paddingBottom = getPaddingBottom();
-
-        int contentWidth = getWidth() - paddingLeft - paddingRight;
-        int contentHeight = getHeight() - paddingTop - paddingBottom;
-
-        if (!hasEllipsizeTopStr) {
-            topStr = TextUtils.ellipsize(topStr, topTextPaint, contentWidth, TextUtils.TruncateAt.END).toString();
-            hasEllipsizeTopStr = true;
+        if (paddingLeft == -1) {
+            paddingLeft = getPaddingLeft();
+        }
+        if (paddingTop == -1) {
+            paddingTop = getPaddingTop();
+        }
+        if (paddingRight == -1) {
+            paddingRight = getPaddingRight();
+        }
+        if (paddingBottom == -1) {
+            paddingBottom = getPaddingBottom();
         }
 
-        if (!hasEllipsizeBottomStr) {
-            bottomStr = TextUtils.ellipsize(bottomStr, bottomTextPaint, contentWidth, TextUtils.TruncateAt.END).toString();
-            hasEllipsizeBottomStr = true;
+        if (contentWidth == -1) {
+            contentWidth = getWidth() - paddingLeft - paddingRight;
+        }
+        if (contentHeight == -1) {
+            contentHeight = getHeight() - paddingTop - paddingBottom;
+        }
+
+        if (!hasEllipsizeTopStr) {
+            nextTopStr = TextUtils.ellipsize(nextTopStr, topTextPaint, contentWidth, TextUtils.TruncateAt.END).toString();
+            hasEllipsizeTopStr = true;
         }
 
         float alpha = 1;
@@ -177,129 +196,72 @@ public class ScrollTextView extends View {
             final long drawingTime = getDrawingTime();
             alphaAnimation.getTransformation(drawingTime, transformation);
             alpha = transformation.getAlpha();
-            if (alpha == 0) {
-                animStarted = false;
-            } else {
-                postInvalidateOnAnimation();
-            }
+            postInvalidateOnAnimation();
         }
 
-        // Draw the top text.
+        //进入
         canvas.drawText(topStr,
                 paddingLeft,
-                paddingTop + topTextHeight + contentHeight * alpha,
+                paddingTop + topTextHeight + (contentHeight + descentTop) * alpha - descentTop,
                 topTextPaint);
-
-        // Draw the bottom text.
         canvas.drawText(bottomStr,
                 paddingLeft,
-                getHeight() - bottomTextHeight + contentHeight * alpha,
+                paddingBottom + contentHeight + contentHeight * alpha - descentBottom,
                 bottomTextPaint);
 
-        /*canvas.drawText(topStr,
-                paddingLeft,
-                (paddingTop + topTextHeight) * alpha - descentTop,
-                topTextPaint);
-
-        canvas.drawText(bottomStr,
-                paddingLeft,
-                (bottomTextHeight + contentHeight) * alpha - descentBottom,
-                bottomTextPaint);*/
+        //滑出
+        if (nextTopStr != null && nextBottomStr != null) {
+            canvas.drawText(nextTopStr,
+                    paddingLeft,
+                    (paddingTop + topTextHeight) * alpha - descentTop,
+                    topTextPaint);
+            canvas.drawText(nextBottomStr,
+                    paddingLeft,
+                    (contentHeight + paddingBottom) * alpha - descentBottom,
+                    bottomTextPaint);
+        }
     }
+
+    private final Runnable action = new Runnable() {
+        @Override
+        public void run() {
+            nextTopStr = topStr;
+            nextBottomStr = bottomStr;
+            getNextString();
+            if (contentWidth != -1) {
+                topStr = TextUtils.ellipsize(topStr, topTextPaint, contentWidth, TextUtils.TruncateAt.END).toString();
+                nextTopStr = TextUtils.ellipsize(nextTopStr, topTextPaint, contentWidth, TextUtils.TruncateAt.END).toString();
+            }
+            startAnimInternal();
+            postDelayed(action, 2500);
+        }
+    };
 
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                startAnim();
-            }
-        }, 2000);
+        if (autoPlay) {
+            postDelayed(action, 2500);
+        }
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        stopAnim();
+        hasEllipsizeTopStr = false;
+        stopAnimInternal();
+        removeCallbacks(action);
     }
 
-    /**
-     * Gets the example string attribute value.
-     *
-     * @return The example string attribute value.
-     */
-    public String getExampleString() {
-        return topStr;
+    public void startAnim() {
+        hasEllipsizeTopStr = false;
+        removeCallbacks(action);
+        postDelayed(action, 2500);
     }
 
-    /**
-     * Sets the view's example string attribute value. In the example view, this string
-     * is the text to draw.
-     *
-     * @param exampleString The example string attribute value to use.
-     */
-    public void setExampleString(String exampleString) {
-        topStr = exampleString;
-        invalidateTextPaintAndMeasurements();
+    public void stopAnim() {
+        stopAnimInternal();
+        removeCallbacks(action);
     }
 
-    /**
-     * Gets the example color attribute value.
-     *
-     * @return The example color attribute value.
-     */
-    public int getExampleColor() {
-        return topTvColor;
-    }
-
-    /**
-     * Sets the view's example color attribute value. In the example view, this color
-     * is the font color.
-     *
-     * @param exampleColor The example color attribute value to use.
-     */
-    public void setExampleColor(int exampleColor) {
-        topTvColor = exampleColor;
-        invalidateTextPaintAndMeasurements();
-    }
-
-    /**
-     * Gets the example dimension attribute value.
-     *
-     * @return The example dimension attribute value.
-     */
-    public float getExampleDimension() {
-        return topTvSize;
-    }
-
-    /**
-     * Sets the view's example dimension attribute value. In the example view, this dimension
-     * is the font size.
-     *
-     * @param exampleDimension The example dimension attribute value to use.
-     */
-    public void setExampleDimension(float exampleDimension) {
-        topTvSize = exampleDimension;
-        invalidateTextPaintAndMeasurements();
-    }
-
-    /**
-     * Gets the example drawable attribute value.
-     *
-     * @return The example drawable attribute value.
-     */
-    public Drawable getExampleDrawable() {
-        return mExampleDrawable;
-    }
-
-    /**
-     * Sets the view's example drawable attribute value. In the example view, this drawable is
-     * drawn above the text.
-     *
-     * @param exampleDrawable The example drawable attribute value to use.
-     */
-    public void setExampleDrawable(Drawable exampleDrawable) {
-        mExampleDrawable = exampleDrawable;
-    }
 }

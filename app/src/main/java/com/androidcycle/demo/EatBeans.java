@@ -12,7 +12,6 @@ import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.view.animation.Transformation;
 
-@Deprecated
 public class EatBeans extends View {
     private AlphaAnimation alphaAnimation;
     private Transformation transformation;
@@ -102,7 +101,7 @@ public class EatBeans extends View {
 
         paint.setARGB(255, 0, 200, 255);
 
-        canvas.drawArc(oval, 45*alpha / 2, 360 - 45*alpha, true, paint);
+        canvas.drawArc(oval, 45 * alpha / 2, 360 - 45 * alpha, true, paint);
 
     }
 

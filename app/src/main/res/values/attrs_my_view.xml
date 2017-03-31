@@ -6,5 +6,6 @@
         <attr name="bottomTextSize" format="dimension" />
         <attr name="topTextColor" format="color" />
         <attr name="bottomTextColor" format="color" />
+        <attr name="autoPlay" format="boolean" />
     </declare-styleable>
 </resources>
